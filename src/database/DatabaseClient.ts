@@ -102,11 +102,23 @@ class DatabaseClient {
   }
 
   async getItemsFromCollection(collection: ObjectId): Promise<ItemModel[]> {
+    let items: ItemModel[] = [];
     const col = await this.collectionsCollection.findOne({_id: collection});
-    if (!col) {
-      return [];
+    if (col) {
+      let promises = [];
+      for (const item of col.items) {
+        promises.push(this.itemsCollection.findOne({_id: item}));
+      }
+      const fetchedItems = await Promise.all(promises);
+
+      fetchedItems.forEach(item => {
+        if (item) {
+          items.push(item as ItemModel);
+        }
+      });
     }
-    return (await this.itemsCollection.find({_id: {$in: col.items}}).toArray()) as ItemModel[];
+
+    return items;
   }
 
   async createTestingDocs(): Promise<{collection: CollectionModel, shoppingList: ShoppingListModel}> { // TODO: DELETE, ONLY FOR TESTING
@@ -123,6 +135,29 @@ class DatabaseClient {
       collection: col as CollectionModel,
       shoppingList: shoppinglist as ShoppingListModel,
     }
+  }
+
+  async reorderItemInCollection(collection: ObjectId, itemUUID: ObjectId, newIndex: number): Promise<void> {
+    // Get index of item in collection
+    const col = await this.collectionsCollection.findOne({_id: collection});
+    if (!col) return;
+
+    let newOrderedItems: ObjectId[] = col["items"];
+    const item: ObjectId | undefined = newOrderedItems.find(i => i.equals(itemUUID));
+    if (!item) return;
+
+    // Change the index of item to newIndex
+    const oldIndex = newOrderedItems.indexOf(item);
+
+    if (newIndex > oldIndex) {
+      newIndex--;
+    }
+
+    newOrderedItems.splice(oldIndex, 1);
+    newOrderedItems.splice(newIndex, 0, item);
+
+    // Update collection
+    await this.collectionsCollection.updateOne({_id: collection}, {$set: {items: newOrderedItems}});
   }
 }
 
