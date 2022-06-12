@@ -84,9 +84,8 @@ export default class SocketServer extends EventEmitter{
     this.emit("listening");
   }
 
-  broadcast(message: Message, exclude?: Connection | Connection[]) {
-    const connections = exclude ? [...this.sockets].filter(c => Array.isArray(exclude) ? !exclude.includes(c) : exclude !== c) : this.sockets;
-    connections.forEach(c => c.socket.send(JSON.stringify(message)));
+  broadcast(message: Message) {
+    this.send(this.sockets, message);
   }
 
   send(conn: Connection | Connection[], message: Message) {
