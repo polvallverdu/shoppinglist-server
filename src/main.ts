@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import DatabaseClient from "./database/DatabaseClient";
 import { CollectionModel, ShoppingListModel } from "./database/models";
 import SocketServer from "./socket/Server";
@@ -39,15 +40,38 @@ ws.on("message", async (conn: Connection, message: Message) => {
       };
       ws.send(conn, message);
       break;
-    case MessageType.ADD_ITEM:
+    case MessageType.REQUEST_ADD_ITEM:
+      const item = await DatabaseClient.createItem(data["name"], data["addedBy"]);
+      await DatabaseClient.addItemToCollection(things.collection._id, item._id);
       ws.broadcast({
         type: MessageType.ADD_ITEM,
         data: {
-          uuid: data.uuid,
-          name: data.name,
-          order: data.order,
+          uuid: item._id.toString(),
+          name: item.name,
+          addedBy: item.addedBy,
+          timestamp: item.timestamp.getTime(),
         }
-      })
+      });
+      break;
+    case MessageType.REQUEST_REMOVE_ITEM:
+      await DatabaseClient.removeItemFromCollection(things.collection._id, new ObjectId(data["uuid"]));
+      ws.broadcast({
+        type: MessageType.REMOVE_ITEM,
+        data: {
+          uuid: data["uuid"],
+        }
+      });
+      break;
+    case MessageType.REQUEST_REORDER_ITEM:
+      await DatabaseClient.reorderItemInCollection(things.collection._id, new ObjectId(data["uuid"]), data["index"]);
+      ws.broadcast({
+        type: MessageType.REORDER_ITEM,
+        data: {
+          uuid: data["uuid"],
+          index: data["index"],
+        }
+      });
+      break;
   }
 })
 
