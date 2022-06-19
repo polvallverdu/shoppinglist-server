@@ -36,7 +36,7 @@ export default class SocketServer extends EventEmitter{
     this.ws.on("connection", (s) => {
       if (!this.listening) {
         // Not accepting connections
-        s.close(69, "Server is not accepting connections");
+        s.close();
         return;
       }
 
@@ -55,24 +55,25 @@ export default class SocketServer extends EventEmitter{
 
         console.log(`new message from ${s.url}`, message);
 
-        if (message.type === MessageType.AUTH && !this.sockets.find(ss => ss.socket === s)) {
-          this.sockets.push({
-            socket: s,
-            name: message.data.name,
-            pinged: true,
-          });
-          return;
-        }
-
         const con = this.findConnectionBySocket(s);
-
-        if (!con) {
+        if (con) {
+          this.emit("message", con, message);
           return;
         }
 
-        this.emit("message", con, message);
-      })
-    })
+        if (message.type === MessageType.AUTH) {
+          if (message.data["password"] === process.env.PASSWORD) {
+            const conn = {
+              socket: s,
+              name: message.data.name,
+              pinged: true,
+            };
+            this.sockets.push(conn);
+            this.send(conn, {type: MessageType.LOGGED});
+          }
+        }
+      });
+    });
   }
 
   listen() {

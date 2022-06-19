@@ -41,8 +41,13 @@ ws.on("message", async (conn: Connection, message: Message) => {
       ws.send(conn, message);
       break;
     case MessageType.REQUEST_ADD_ITEM:
+      if (data["name"] === "") {
+        return;
+      }
+      const index = data["index"] ? data["index"] : 0;
       const item = await DatabaseClient.createItem(data["name"], data["addedBy"]);
-      await DatabaseClient.addItemToCollection(things.collection._id, item._id);
+      
+      await DatabaseClient.addItemToCollection(things.collection._id, item._id, index);
       ws.broadcast({
         type: MessageType.ADD_ITEM,
         data: {
@@ -50,6 +55,7 @@ ws.on("message", async (conn: Connection, message: Message) => {
           name: item.name,
           addedBy: item.addedBy,
           timestamp: item.timestamp.getTime(),
+          index,
         }
       });
       break;

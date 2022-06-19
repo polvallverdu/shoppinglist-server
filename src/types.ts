@@ -3,6 +3,7 @@ import ws from "ws";
 export enum MessageType {
   CONNECTED,
   AUTH,
+  LOGGED,
   NAME_CHANGE,
   PING,
   PONG,

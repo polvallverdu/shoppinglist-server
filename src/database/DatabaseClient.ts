@@ -20,8 +20,13 @@ class DatabaseClient {
   }
 
   async connect(): Promise<void> {
-    await this.client.connect();
-    console.log("Connected to MongoDB!");
+    console.log("Connecting to database...");
+    try {
+      await this.client.connect();
+      console.log("Connected to MongoDB!");
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   async createCollection(name: string): Promise<CollectionModel> {
@@ -49,10 +54,10 @@ class DatabaseClient {
     return (await this.shoppingListCollection.findOne({ _id: list.insertedId })) as ShoppingListModel;
   }
 
-  async addItemToCollection(collection: ObjectId, item: ObjectId): Promise<void> {
+  async addItemToCollection(collection: ObjectId, item: ObjectId, index: number = 0): Promise<void> {
     await this.collectionsCollection.updateOne(
       { _id: collection },
-      { $push: { items: item } },
+      { $push: { items: { $each: [item], $position: index } } },
     );
   }
 
