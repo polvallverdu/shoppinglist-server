@@ -16,6 +16,7 @@ export default class SocketServer extends EventEmitter{
   ws: Server;
   private listening: boolean;
   private pingTimer: NodeJS.Timer;
+  private pingCheckTimer: NodeJS.Timer;
 
   constructor(port: number = 3000) {
     super();
@@ -30,8 +31,16 @@ export default class SocketServer extends EventEmitter{
         if (!c.pinged) {
           this.closeConnection(c, true);
         }
+        c.pinged = false;
       })
     }, 30*1000);
+
+    this.pingCheckTimer = setInterval(async () => {
+      const currectConnections: Connection[] = [...this.sockets];
+      currectConnections.forEach(c => {
+        this.send(c, {type: MessageType.PING, data: {timestamp: Date.now()}});
+      });
+    }, 5*1000);
 
     this.ws.on("connection", (s) => {
       if (!this.listening) {
@@ -57,6 +66,11 @@ export default class SocketServer extends EventEmitter{
 
         const con = this.findConnectionBySocket(s);
         if (con) {
+          if (message.type === MessageType.PONG) {
+            con.pinged = true;
+            return;
+          }
+
           this.emit("message", con, message);
           return;
         }
@@ -114,7 +128,7 @@ export default class SocketServer extends EventEmitter{
     }
 
     if (!force) {
-      // TODO: Some logic to close connection
+      this.send(conn, {type: MessageType.DISCONNECT});
     }
 
     conn.socket.close(-1);

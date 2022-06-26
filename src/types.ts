@@ -17,6 +17,7 @@ export enum MessageType {
   ADD_ITEM,
   REQUEST_UPDATE_ITEM,
   UPDATE_ITEM,
+  DISCONNECT,
 }
 
 export type Connection = {
