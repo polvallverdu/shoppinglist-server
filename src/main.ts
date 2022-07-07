@@ -78,6 +78,16 @@ ws.on("message", async (conn: Connection, message: Message) => {
         }
       });
       break;
+    case MessageType.REQUEST_UPDATE_ITEM:
+      await DatabaseClient.changeItemName(new ObjectId(data["uuid"]), data["newName"]);
+      ws.broadcast({
+        type: MessageType.UPDATE_ITEM,
+        data: {
+          uuid: data["uuid"],
+          newName: data["newName"],
+        }
+      });
+      break;
   }
 })
 

@@ -164,6 +164,10 @@ class DatabaseClient {
     // Update collection
     await this.collectionsCollection.updateOne({_id: collection}, {$set: {items: newOrderedItems}});
   }
+
+  async changeItemName(item: ObjectId, name: string): Promise<void> {
+    await this.itemsCollection.updateOne({_id: item}, {$set: {name}});
+  }
 }
 
 export default new DatabaseClient();
