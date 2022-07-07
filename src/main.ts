@@ -24,7 +24,7 @@ ws.on("message", async (conn: Connection, message: Message) => {
     case MessageType.REQUEST_REFRESH:
       const itemModels = await DatabaseClient.getItemsFromCollection(things.collection._id);
 
-      const formattedItems: FormattedItem[] = itemModels.map(item => {
+      const formattedItems: FormattedItem[] = itemModels.filter(i => i.name !== undefined || i.name !== null || i.name !== "").map(item => {
         const formattedItem: FormattedItem = {
           uuid: item._id.toString(),
           name: item.name,
@@ -41,7 +41,7 @@ ws.on("message", async (conn: Connection, message: Message) => {
       ws.send(conn, message);
       break;
     case MessageType.REQUEST_ADD_ITEM:
-      if (data["name"] === "") {
+      if (data["name"] === undefined || data["name"] === "" || data["name"].length > 100) {
         return;
       }
       const index = data["index"] ? data["index"] : 0;
@@ -80,6 +80,9 @@ ws.on("message", async (conn: Connection, message: Message) => {
       break;
     case MessageType.REQUEST_UPDATE_ITEM:
       await DatabaseClient.changeItemName(new ObjectId(data["uuid"]), data["newName"]);
+      if (data["newName"] === undefined || data["newName"] === "") {
+        return;
+      }
       ws.broadcast({
         type: MessageType.UPDATE_ITEM,
         data: {
