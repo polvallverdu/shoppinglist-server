@@ -30,6 +30,7 @@ ws.on("message", async (conn: Connection, message: Message) => {
           name: item.name,
           addedBy: item.addedBy,
           timestamp: item.timestamp.getTime(),
+          notFound: item.notFound?.getTime() ?? null,
         }
         return formattedItem;
       });

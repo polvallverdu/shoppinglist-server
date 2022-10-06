@@ -18,6 +18,8 @@ export enum MessageType {
   REQUEST_UPDATE_ITEM,
   UPDATE_ITEM,
   DISCONNECT,
+  REQUEST_NOT_FOUND_ITEM,
+  NOT_FOUND_ITEM,
 }
 
 export type Connection = {
@@ -34,8 +36,9 @@ export type Message = {
 export type FormattedItem = {
   uuid: string;
   name: string;
-  addedBy: String;
+  addedBy: string;
   timestamp: number;
+  notFound: number | null;
 }
 
 export type ReorderQuery = {

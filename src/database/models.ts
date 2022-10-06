@@ -17,4 +17,5 @@ export type ItemModel = {
   name: string;
   addedBy: string;
   timestamp: Date;
+  notFound: Date | null;
 }

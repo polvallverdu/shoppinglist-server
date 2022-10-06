@@ -1,4 +1,4 @@
-import {Collection, Db, MongoClient, ObjectId} from "mongodb";
+import { Collection, Db, MongoClient, ObjectId } from "mongodb";
 import { CollectionModel, ItemModel, ShoppingListModel } from "./models";
 require("dotenv").config();
 
@@ -12,7 +12,7 @@ class DatabaseClient {
 
   constructor() {
     this.client = new MongoClient(process.env.MONGODB_URI!);
-    this.db = this.client.db();
+    this.db = this.client.db("shoppinglist");
 
     this.shoppingListCollection = this.db.collection("shoppinglists");
     this.collectionsCollection = this.db.collection("collections");
@@ -34,7 +34,9 @@ class DatabaseClient {
       name,
       items: [],
     });
-    return (await this.collectionsCollection.findOne({ _id: col.insertedId })) as CollectionModel;
+    return (await this.collectionsCollection.findOne({
+      _id: col.insertedId,
+    })) as CollectionModel;
   }
 
   async createItem(name: string, addedBy: string): Promise<ItemModel> {
@@ -42,43 +44,64 @@ class DatabaseClient {
       name,
       addedBy,
       timestamp: new Date(),
+      notFound: null,
     });
-    return (await this.itemsCollection.findOne({ _id: item.insertedId })) as ItemModel;
+    return (await this.itemsCollection.findOne({
+      _id: item.insertedId,
+    })) as ItemModel;
   }
 
-  async createShoppingList(name: string, collections: ObjectId[]): Promise<ShoppingListModel> {
+  async createShoppingList(
+    name: string,
+    collections: ObjectId[]
+  ): Promise<ShoppingListModel> {
     const list = await this.shoppingListCollection.insertOne({
       name,
       collections,
     });
-    return (await this.shoppingListCollection.findOne({ _id: list.insertedId })) as ShoppingListModel;
+    return (await this.shoppingListCollection.findOne({
+      _id: list.insertedId,
+    })) as ShoppingListModel;
   }
 
-  async addItemToCollection(collection: ObjectId, item: ObjectId, index: number = 0): Promise<void> {
+  async addItemToCollection(
+    collection: ObjectId,
+    item: ObjectId,
+    index: number = 0
+  ): Promise<void> {
     await this.collectionsCollection.updateOne(
       { _id: collection },
-      { $push: { items: { $each: [item], $position: index } } },
+      { $push: { items: { $each: [item], $position: index } } }
     );
   }
 
-  async addCollectionToShoppingList(list: ObjectId, collection: ObjectId): Promise<void> {
+  async addCollectionToShoppingList(
+    list: ObjectId,
+    collection: ObjectId
+  ): Promise<void> {
     await this.shoppingListCollection.updateOne(
       { _id: list },
-      { $push: { collections: collection } },
+      { $push: { collections: collection } }
     );
   }
 
-  async removeItemFromCollection(collection: ObjectId, item: ObjectId): Promise<void> {
+  async removeItemFromCollection(
+    collection: ObjectId,
+    item: ObjectId
+  ): Promise<void> {
     await this.collectionsCollection.updateOne(
       { _id: collection },
-      { $pull: { items: item } },
+      { $pull: { items: item } }
     );
   }
 
-  async removeCollectionFromShoppingList(list: ObjectId, collection: ObjectId): Promise<void> {
+  async removeCollectionFromShoppingList(
+    list: ObjectId,
+    collection: ObjectId
+  ): Promise<void> {
     await this.shoppingListCollection.updateOne(
       { _id: list },
-      { $pull: { collections: collection } },
+      { $pull: { collections: collection } }
     );
   }
 
@@ -95,11 +118,15 @@ class DatabaseClient {
   }
 
   async getShoppingLists(): Promise<ShoppingListModel[]> {
-    return (await this.shoppingListCollection.find({}).toArray()) as ShoppingListModel[];
+    return (await this.shoppingListCollection
+      .find({})
+      .toArray()) as ShoppingListModel[];
   }
 
   async getCollections(): Promise<CollectionModel[]> {
-    return (await this.collectionsCollection.find({}).toArray()) as CollectionModel[];
+    return (await this.collectionsCollection
+      .find({})
+      .toArray()) as CollectionModel[];
   }
 
   async getItems(): Promise<ItemModel[]> {
@@ -108,15 +135,15 @@ class DatabaseClient {
 
   async getItemsFromCollection(collection: ObjectId): Promise<ItemModel[]> {
     let items: ItemModel[] = [];
-    const col = await this.collectionsCollection.findOne({_id: collection});
+    const col = await this.collectionsCollection.findOne({ _id: collection });
     if (col) {
       let promises = [];
       for (const item of col.items) {
-        promises.push(this.itemsCollection.findOne({_id: item}));
+        promises.push(this.itemsCollection.findOne({ _id: item }));
       }
       const fetchedItems = await Promise.all(promises);
 
-      fetchedItems.forEach(item => {
+      fetchedItems.forEach((item) => {
         if (item) {
           items.push(item as ItemModel);
         }
@@ -126,7 +153,11 @@ class DatabaseClient {
     return items;
   }
 
-  async createTestingDocs(): Promise<{collection: CollectionModel, shoppingList: ShoppingListModel}> { // TODO: DELETE, ONLY FOR TESTING
+  async createTestingDocs(): Promise<{
+    collection: CollectionModel;
+    shoppingList: ShoppingListModel;
+  }> {
+    // TODO: DELETE, ONLY FOR TESTING
     let col = await this.collectionsCollection.findOne({});
     if (!col) {
       col = await this.createCollection("Test Collection");
@@ -134,21 +165,29 @@ class DatabaseClient {
     }
     let shoppinglist = await this.shoppingListCollection.findOne({});
     if (!shoppinglist) {
-      shoppinglist = await this.createShoppingList("Test Shopping List", [col._id]);
+      shoppinglist = await this.createShoppingList("Test Shopping List", [
+        col._id,
+      ]);
     }
     return {
       collection: col as CollectionModel,
       shoppingList: shoppinglist as ShoppingListModel,
-    }
+    };
   }
 
-  async reorderItemInCollection(collection: ObjectId, itemUUID: ObjectId, newIndex: number): Promise<void> {
+  async reorderItemInCollection(
+    collection: ObjectId,
+    itemUUID: ObjectId,
+    newIndex: number
+  ): Promise<void> {
     // Get index of item in collection
-    const col = await this.collectionsCollection.findOne({_id: collection});
+    const col = await this.collectionsCollection.findOne({ _id: collection });
     if (!col) return;
 
     let newOrderedItems: ObjectId[] = col["items"];
-    const item: ObjectId | undefined = newOrderedItems.find(i => i.equals(itemUUID));
+    const item: ObjectId | undefined = newOrderedItems.find((i) =>
+      i.equals(itemUUID)
+    );
     if (!item) return;
 
     // Change the index of item to newIndex
@@ -162,11 +201,18 @@ class DatabaseClient {
     newOrderedItems.splice(newIndex, 0, item);
 
     // Update collection
-    await this.collectionsCollection.updateOne({_id: collection}, {$set: {items: newOrderedItems}});
+    await this.collectionsCollection.updateOne(
+      { _id: collection },
+      { $set: { items: newOrderedItems } }
+    );
   }
 
   async changeItemName(item: ObjectId, name: string): Promise<void> {
-    await this.itemsCollection.updateOne({_id: item}, {$set: {name}});
+    await this.itemsCollection.updateOne({ _id: item }, { $set: { name } });
+  }
+
+  async setNotFoundItem(item: ObjectId): Promise<void> {
+    await this.itemsCollection.updateOne({ _id: item }, { $set: { notFound: new Date() } });
   }
 }
 
